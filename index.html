@@ -1,0 +1,287 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>活動梯次報名與查詢系統</title>
+    <style>
+        body {
+            font-family: 'Helvetica Neue', Arial, sans-serif;
+            background-color: #f4f7f6;
+            color: #333;
+            margin: 0;
+            padding: 20px;
+        }
+        .container {
+            max-width: 600px;
+            margin: 30px auto;
+            background: #fff;
+            padding: 30px;
+            border-radius: 12px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.05);
+        }
+        h2 {
+            text-align: center;
+            color: #2c3e50;
+            margin-bottom: 25px;
+        }
+        .section-divider {
+            border-top: 2px dashed #e0e0e0;
+            margin: 40px 0;
+        }
+        .form-group {
+            margin-bottom: 20px;
+        }
+        label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: bold;
+            color: #4a5568;
+        }
+        input[type="text"], input[type="tel"] {
+            width: 100%;
+            padding: 12px;
+            border: 1px solid #cbd5e0;
+            border-radius: 6px;
+            box-sizing: border-box;
+            font-size: 16px;
+        }
+        .radio-group {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+        .radio-label {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 14px;
+            border: 2px solid #e2e8f0;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.2s;
+            font-size: 16px;
+        }
+        .radio-label:hover:not(.disabled) {
+            border-color: #3182ce;
+            background-color: #ebf8ff;
+        }
+        /* 額滿選項的灰色反灰樣式 */
+        .radio-label.disabled {
+            background-color: #edf2f7;
+            border-color: #cbd5e0;
+            color: #a0aec0;
+            cursor: not-allowed;
+        }
+        .radio-label input[type="radio"]:disabled {
+            cursor: not-allowed;
+        }
+        .badge {
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 12px;
+            font-weight: bold;
+        }
+        .badge-open { background-color: #c6f6d5; color: #22543d; }
+        .badge-full { background-color: #fed7d7; color: #742a2a; }
+        
+        button {
+            width: 100%;
+            padding: 14px;
+            background-color: #3182ce;
+            color: white;
+            border: none;
+            border-radius: 6px;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+            margin-top: 10px;
+        }
+        button:hover { background-color: #2b6cb0; }
+        button:disabled { background-color: #a0aec0; cursor: not-allowed; }
+        
+        .result-box {
+            margin-top: 15px;
+            padding: 12px;
+            border-radius: 6px;
+            display: none;
+            font-size: 14px;
+        }
+        .success { background-color: #c6f6d5; color: #22543d; }
+        .error { background-color: #fed7d7; color: #742a2a; }
+        
+        .query-item {
+            border-bottom: 1px solid #e2e8f0;
+            padding: 10px 0;
+        }
+        .query-item:last-child { border-bottom: none; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h2>活動梯次線上報名表</h2>
+    <form id="regForm">
+        <div class="form-group">
+            <label for="name">姓名</label>
+            <input type="text" id="name" required placeholder="請輸入您的真實姓名">
+        </div>
+        <div class="form-group">
+            <label for="phone">手機號碼</label>
+            <input type="tel" id="phone" required placeholder="請輸入手機號碼（格式：0912345678）">
+        </div>
+        <div class="form-group">
+            <label>請選擇報名梯次（每梯次限額 3 人）</label>
+            <div class="radio-group" id="slotContainer">
+                載入梯次狀態中...
+            </div>
+        </div>
+        <button type="submit" id="submitBtn" disabled>提交報名</button>
+        <div id="regResult" class="result-box"></div>
+    </form>
+
+    <div class="section-divider"></div>
+
+    <h2>報名結果即時查詢</h2>
+    <div class="form-group">
+        <label for="queryPhone">輸入手機號碼查詢</label>
+        <input type="tel" id="queryPhone" placeholder="請輸入報名時填寫的手機號碼">
+    </div>
+    <button type="button" id="queryBtn" style="background-color: #4a5568;">開始查詢</button>
+    <div id="queryResult" class="result-box" style="background-color: #edf2f7; color: #2d3748;"></div>
+</div>
+
+<script>
+    // ⚠️ 務必在此處替換成您在步驟二部署後獲得的 Google Apps Script 網頁應用程式 URL
+    const API_URL = "https://script.google.com/macros/s/AKfycbyH-8Y5vVBzC-ANg5Gt-GqRbvg3ZvvuawF2km2LAmaPIXIRuuMEaK28KwW6a2WHKnLh/exec"; 
+
+    // 網頁開啟時，自動向後台撈取人數狀態
+    async function loadSlotStatus() {
+        try {
+            const response = await fetch(`${API_URL}?action=getStatus`);
+            const result = await response.json();
+            
+            if (result.success) {
+                const slots = result.data;
+                let html = '';
+                
+                Object.keys(slots).forEach(slotName => {
+                    const info = slots[slotName];
+                    if (info.isFull) {
+                        // 如果額滿：加入 .disabled 樣式，且將 input 設為 disabled 禁用
+                        html += `
+                            <label class="radio-label disabled">
+                                <span><input type="radio" name="slot" value="${slotName}" disabled> ${slotName}</span>
+                                <span class="badge badge-full">❌ 已額滿 (${info.current}/${info.max})</span>
+                            </label>
+                        `;
+                    } else {
+                        // 未額滿：正常選取
+                        html += `
+                            <label class="radio-label">
+                                <span><input type="radio" name="slot" value="${slotName}" required> ${slotName}</span>
+                                <span class="badge badge-open">餘額 ${info.max - info.current} 名</span>
+                            </label>
+                        `;
+                    }
+                });
+                
+                document.getElementById('slotContainer').innerHTML = html;
+                document.getElementById('submitBtn').disabled = false;
+            }
+        } catch (error) {
+            document.getElementById('slotContainer').innerHTML = '無法載入梯次狀態，請重新整理網頁。';
+            console.error(error);
+        }
+    }
+
+    // 處理表單報名送出
+    document.getElementById('regForm').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const submitBtn = document.getElementById('submitBtn');
+        const regResult = document.getElementById('regResult');
+        
+        const name = document.getElementById('name').value.trim();
+        const phone = document.getElementById('phone').value.trim();
+        const selectedSlot = document.querySelector('input[name="slot"]:checked');
+        
+        if (!selectedSlot) {
+            alert('請選擇一個梯次！');
+            return;
+        }
+        
+        submitBtn.disabled = true;
+        submitBtn.innerText = '處理中...';
+        regResult.style.display = 'none';
+
+        try {
+            const response = await fetch(API_URL, {
+                method: 'POST',
+                mode: 'no-cors', // 配合 GAS 的跨網域通訊
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ name: name, phone: phone, slot: selectedSlot.value })
+            });
+
+            // 因為 no-cors 模式無法在前端獲取實際 JSON 回傳值，我們預設只要沒噴錯就是成功寫入
+            regResult.className = 'result-box success';
+            regResult.innerText = '報名資料已送出！系統正在為您安排名額，請於下方輸入手機確認是否最終報名成功。';
+            regResult.style.display = 'block';
+            
+            // 重新整理梯次狀態
+            setTimeout(loadSlotStatus, 1500);
+            document.getElementById('regForm').reset();
+            
+        } catch (error) {
+            regResult.className = 'result-box error';
+            regResult.innerText = '報名連線發生錯誤，請稍後再試。';
+            regResult.style.display = 'block';
+        } finally {
+            submitBtn.innerText = '提交報名';
+            submitBtn.disabled = false;
+        }
+    });
+
+    // 處理手機號碼查詢
+    document.getElementById('queryBtn').addEventListener('click', async () => {
+        const phone = document.getElementById('queryPhone').value.trim();
+        const queryResult = document.getElementById('queryResult');
+        
+        if (!phone) {
+            alert('請輸入手機號碼！');
+            return;
+        }
+        
+        queryResult.innerText = '查詢中...';
+        queryResult.style.display = 'block';
+        
+        try {
+            const response = await fetch(`${API_URL}?action=query&phone=${encodeURIComponent(phone)}`);
+            const result = await response.json();
+            
+            if (result.success && result.data.length > 0) {
+                let html = '<div style="font-weight:bold; margin-bottom:8px;">查到以下報名成功紀錄：</div>';
+                result.data.forEach(item => {
+                    html += `
+                        <div class="query-item">
+                            📌 <b>${item.slot}</b><br>
+                            填答姓名：${item.name}<br>
+                            登記時間：${item.time}
+                        </div>
+                    `;
+                });
+                queryResult.innerHTML = html;
+            } else {
+                queryResult.innerHTML = '❌ 查無此手機號碼的成功報名紀錄，請確認號碼是否正確或尚未送出。';
+            }
+        } catch (error) {
+            queryResult.innerText = '查詢失敗，後端資料庫連線異常。';
+            console.error(error);
+        }
+    });
+
+    // 初始化網頁
+    loadSlotStatus();
+</script>
+
+</body>
+</html>
