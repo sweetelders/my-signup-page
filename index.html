@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>樂活生態體驗 - 線上報名與查詢系統</title>
+    <title>115年08月樂活學習講堂 - 線上報名與查詢系統</title>
     <style>
         :root {
             --primary-color: #2e7d32;
@@ -201,12 +201,12 @@
 <body>
 
 <div class="header-banner">
-    <h1>樂活生態體驗活動</h1>
-    <p>名額控管．安全驗證取消．自動通知信系統</p>
+    <h1>115年08月 樂活學習講堂</h1>
+    <p>名額控管．安全驗證取消．自動遞補通知系統</p>
 </div>
 
 <div class="container">
-    <h2>活動梯次線上報名表</h2>
+    <h2>活動講堂線上報名表</h2>
     <form id="regForm">
         <div class="form-group">
             <label for="name">姓名</label>
@@ -217,28 +217,28 @@
             <input type="tel" id="phone" required pattern="^09[0-9]{8}$" placeholder="請輸入手機號碼（格式：0912345678）">
         </div>
         <div class="form-group">
-            <label for="email">電子信箱 (用於發送報名確認信與取消驗證)</label>
+            <label for="email">電子信箱 (用於接收報名確認信與取消驗證)</label>
             <input type="email" id="email" required placeholder="請輸入您的電子信箱">
         </div>
         <div class="form-group">
-            <label>請選擇報名梯次（每梯次限額 3 人，額滿開放候補）</label>
+            <label>請選擇報名梯次（額滿將自動開放候補）</label>
             <div class="radio-group" id="slotContainer">
-                載入梯次狀態中...
+                載入講堂場次狀態中...
             </div>
         </div>
         <button type="submit" id="submitBtn" disabled>
             <span class="spinner" id="submitSpinner"></span>
-            <span>送出報名</span>
+            <span>確認送出報名</span>
         </button>
         <div id="regResult" class="result-box"></div>
     </form>
 
     <div class="section-divider"></div>
 
-    <h2>報名結果查詢與取消</h2>
+    <h2>報名結果查詢與安全取消</h2>
     <div class="form-group">
         <label for="queryPhone">輸入手機號碼查詢</label>
-        <input type="tel" id="queryPhone" pattern="^09[0-9]{8}$" placeholder="請輸入報名時填寫的手機號碼">
+        <input type="tel" id="queryPhone" placeholder="請輸入報名時填寫的手機號碼">
     </div>
     <button type="button" id="queryBtn" style="background-color: #4a5568;">
         <span class="spinner" id="querySpinner"></span>
@@ -263,19 +263,37 @@
                 
                 Object.keys(slots).forEach(slotName => {
                     const info = slots[slotName];
+                    
+                    // 根據課程名稱對應海報中的細節資訊
+                    let details = "";
+                    if (slotName.includes("08.04")) details = "📍 210教室 | 講師: 林聰輝 | 材料費: 無 (請自備手機、Google帳密)";
+                    else if (slotName.includes("08.07")) details = "📍 210教室 | 講師: 王惠麗 | 材料費: 無";
+                    else if (slotName.includes("08.11")) details = "📍 210教室 | 講師: 邱侯玉蘭 | 材料費: $80/人";
+                    else if (slotName.includes("08.14")) details = "📍 210教室 | 講師: 吳淑敏 | 材料費: 無";
+                    else if (slotName.includes("08.18")) details = "📍 210教室 | 講師: 林世昌 | 材料費: 無";
+                    else if (slotName.includes("08.21")) details = "📍 210教室 | 講師: 朱淑惠 | 材料費: $80/人";
+                    else if (slotName.includes("08.25")) details = "📍 210教室 | 講師: 李蓮嬌 | 材料費: $150/人";
+                    else if (slotName.includes("08.28")) details = "📍 210教室 | 講師: 陳美惠 | 材料費: $80/人";
+
                     if (info.isFull) {
                         // 額滿則標示候補
                         html += `
-                            <label class="radio-label">
-                                <span><input type="radio" name="slot" value="${slotName}" required> ${slotName}</span>
-                                <span class="badge badge-full">❌ 已額滿 (開放候補中)</span>
+                            <label class="radio-label" style="flex-direction: column; align-items: flex-start; gap: 4px;">
+                                <div style="display: flex; justify-content: space-between; width: 100%;">
+                                    <span><input type="radio" name="slot" value="${slotName}" required> <b>${slotName}</b></span>
+                                    <span class="badge badge-full">❌ 已額滿 (開放候補中)</span>
+                                </div>
+                                <div style="font-size: 13px; color: #a0aec0; padding-left: 24px;">${details}</div>
                             </label>
                         `;
                     } else {
                         html += `
-                            <label class="radio-label">
-                                <span><input type="radio" name="slot" value="${slotName}" required> ${slotName}</span>
-                                <span class="badge badge-open">餘額 ${info.max - info.current} 名</span>
+                            <label class="radio-label" style="flex-direction: column; align-items: flex-start; gap: 4px;">
+                                <div style="display: flex; justify-content: space-between; width: 100%;">
+                                    <span><input type="radio" name="slot" value="${slotName}" required> <b>${slotName}</b></span>
+                                    <span class="badge badge-open">餘額 ${info.max - info.current} 名 / 限額 ${info.max}人</span>
+                                </div>
+                                <div style="font-size: 13px; color: var(--muted-text); padding-left: 24px;">${details}</div>
                             </label>
                         `;
                     }
@@ -285,7 +303,7 @@
                 document.getElementById('submitBtn').disabled = false;
             }
         } catch (error) {
-            document.getElementById('slotContainer').innerHTML = '無法載入梯次狀態，請確認 Apps Script 已正確部署並開放所有人存取。';
+            document.getElementById('slotContainer').innerHTML = '無法載入講堂狀態，請確認 Apps Script 已正確部署並開放所有人存取。';
             console.error(error);
         }
     }
@@ -303,7 +321,7 @@
         const selectedSlot = document.querySelector('input[name="slot"]:checked');
         
         if (!selectedSlot) {
-            alert('請選擇一個梯次！');
+            alert('請選擇一門課程！');
             return;
         }
         
@@ -326,7 +344,7 @@
             });
 
             regResult.className = 'result-box success';
-            regResult.innerHTML = `🎉 <b>報名資料已成功傳送！</b><br>系統正同步處理。如果您未重複報名，系統會在 1 分鐘內將<b>報名確認信</b>寄至您的電子信箱，請於下方輸入手機號碼查詢確認結果。`;
+            regResult.innerHTML = `🎉 <b>登記資料已成功送出！</b><br>系統正同步處理中。如果手機無重複報名，系統會在 1 分鐘內發送<b>報名/候補確認信</b>至您的信箱，請於下方輸入手機號碼查詢最終確認結果。`;
             regResult.style.display = 'block';
             
             setTimeout(loadSlotStatus, 1500);
@@ -342,14 +360,16 @@
         }
     });
 
-    // 3. 查詢報名狀態
+    // 3. 查詢報名狀態（含防重複/格式自動整理邏輯）
     document.getElementById('queryBtn').addEventListener('click', async () => {
-        const phone = document.getElementById('queryPhone').value.trim();
+        let phone = document.getElementById('queryPhone').value.replace(/[\s-]/g, '');
         const queryResult = document.getElementById('queryResult');
         const querySpinner = document.getElementById('querySpinner');
         
+        document.getElementById('queryPhone').value = phone;
+        
         if (!phone.match(/^09[0-9]{8}$/)) {
-            alert('請輸入正確的手機號碼格式（10碼）！');
+            alert('請輸入正確的手機號碼格式（10碼，例如：0912345678）！');
             return;
         }
         
@@ -361,7 +381,7 @@
             const result = await response.json();
             
             if (result.success && result.data.length > 0) {
-                let html = '<div style="font-weight:bold; margin-bottom:10px; color: var(--primary-color);">🔍 查到以下登記紀錄：</div>';
+                let html = '<div style="font-weight:bold; margin-bottom:10px; color: var(--primary-color);">🔍 查到以下預約登記紀錄：</div>';
                 result.data.forEach((item, index) => {
                     const statusText = item.isBackup ? '<span style="color:#dd6b20; font-weight:bold;">[候補中]</span>' : '<span style="color:#2f855a; font-weight:bold;">[報名成功]</span>';
                     html += `
@@ -370,16 +390,16 @@
                                 <b>📌 ${item.slot}</b> ${statusText}
                             </div>
                             <div style="font-size:13px; color:#4a5568; margin-top:5px;">
-                                姓名：${item.name}<br>
+                                填答姓名：${item.name}<br>
                                 登記時間：${item.time}
                             </div>
                             
                             <!-- 雙重驗證取消專區 -->
                             <div class="cancel-box" id="cancelBox_${index}">
-                                <b>💡 想取消此預約？</b><br>
-                                <span style="color:#718096;">為防止他人惡意取消，請輸入您報名時填寫的電子信箱驗證：</span>
+                                <b>💡 需要取消此預約？</b><br>
+                                <span style="color:#718096;">為保障您的權益，請輸入報名時留下的電子信箱：</span>
                                 <input type="email" id="confirmEmail_${index}" placeholder="請輸入電子信箱" style="margin-top:8px; padding:6px 10px; font-size:13px;">
-                                <button type="button" class="btn-cancel" onclick="cancelRegistration('${phone}', '${item.slot}', ${index})">驗證並取消報名</button>
+                                <button type="button" class="btn-cancel" onclick="cancelRegistration('${phone}', '${item.slot}', ${index})">驗證並取消預約</button>
                                 <div id="cancelResult_${index}" style="margin-top:8px; display:none; font-weight:bold;"></div>
                             </div>
                         </div>
@@ -390,7 +410,7 @@
                 queryResult.innerHTML = html;
             } else {
                 queryResult.className = "result-box error";
-                queryResult.innerHTML = '❌ 查無此手機號碼的登記紀錄。請確認是否已取消，或尚未進行報名。';
+                queryResult.innerHTML = '❌ 查無此手機號碼的登記紀錄。請確認是否輸入正確或已取消。';
             }
         } catch (error) {
             queryResult.className = "result-box error";
@@ -421,7 +441,6 @@
         cancelResult.innerText = '驗證身分並處理取消中...';
         
         try {
-            // 利用 POST 發送取消請求
             const response = await fetch(API_URL, {
                 method: 'POST',
                 mode: 'no-cors',
@@ -435,9 +454,8 @@
             });
             
             cancelResult.style.color = '#22543d';
-            cancelResult.innerHTML = '已送出取消要求！請於 3 秒後重新點擊「開始查詢」確認最新預約狀態。';
+            cancelResult.innerHTML = '已成功送出取消要求！請於 3 秒後重新查詢確認最新預約狀態。';
             
-            // 重新整理梯次狀態
             setTimeout(loadSlotStatus, 1500);
             
         } catch (error) {
